@@ -52,7 +52,7 @@ private:
     LocalTriangulator m_triangulator;
 };
 
-struct Triangulator_Vertex {
+struct TriangulatorVertex {
     glm::vec2 position;
     glm::vec3 factors;
 };
@@ -61,12 +61,12 @@ class Triangulator {
 public:
     Triangulator(const Path& path);
 
-    const Triangulator_Vertex* getVertices() const;
+    const TriangulatorVertex* getVertices() const;
     std::size_t numVertices() const;
 private:
     void constrainedTriangulate();
 
-    std::vector<Triangulator_Vertex> m_vertices;
+    std::vector<TriangulatorVertex> m_vertices;
     std::vector<Triangulator_Segment> m_segments;
 };
 

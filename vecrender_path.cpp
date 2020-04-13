@@ -45,11 +45,12 @@ Path_ElementIterator::Path_ElementIterator(const Path& path, bool end)
 Path_ElementIterator& Path_ElementIterator::operator ++()
 {
     assert(m_curElem.getType() != PathElement::e_INVALID);
-    m_curElem.m_points += m_curElem.numPoints() - 1;
+    m_curElem.m_points += m_curElem.getNumPoints() - 1;
     ++m_itElem;
     if (m_itElem != m_path->m_elemTypes.end() && 
         *m_itElem == PathElement::e_MOVE) {
         ++m_itElem;
+        ++m_curElem.m_points;
     }
     if (m_itElem != m_path->m_elemTypes.end()) {
         m_curElem.m_elemType = *m_itElem;
@@ -68,14 +69,14 @@ Path::Path()
 {
 }
 
-Path::Path(Path&& rhs)
+Path::Path(Path&& rhs) noexcept
     : m_points(std::move(rhs.m_points))
     , m_elemTypes(std::move(rhs.m_elemTypes))
     , m_curSubPathLen(std::exchange(rhs.m_curSubPathLen, 0))
 {
 }
 
-Path& Path::operator =(Path&& rhs)
+Path& Path::operator =(Path&& rhs) noexcept
 {
     if (this != &rhs) {
         m_points = std::move(rhs.m_points);
@@ -91,7 +92,7 @@ void Path::moveTo(glm::vec2 p)
         close();
         m_points.push_back(p);
         m_elemTypes.push_back(PathElement::e_MOVE);
-        m_curSubPathLen = 1;
+        ++m_curSubPathLen;
     } else {
         m_points.back() = p;
     }
@@ -102,6 +103,7 @@ void Path::lineTo(glm::vec2 p)
     assert(m_curSubPathLen);
     m_points.push_back(p);
     m_elemTypes.push_back(PathElement::e_LINE);
+    ++m_curSubPathLen;
 }
 
 void Path::quadraticTo(glm::vec2 p1, glm::vec2 p2)
@@ -110,6 +112,7 @@ void Path::quadraticTo(glm::vec2 p1, glm::vec2 p2)
     m_points.push_back(p1);
     m_points.push_back(p2);
     m_elemTypes.push_back(PathElement::e_QUADRATIC);
+    m_curSubPathLen += 2;
 }
 
 void Path::cubicTo(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3)
@@ -119,6 +122,7 @@ void Path::cubicTo(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3)
     m_points.push_back(p2);
     m_points.push_back(p3);
     m_elemTypes.push_back(PathElement::e_CUBIC);
+    m_curSubPathLen += 3;
 }
 
 void Path::close()
@@ -128,12 +132,11 @@ void Path::close()
         if (m_points.back() != firstPoint) {
             lineTo(firstPoint);
         }
-        m_curSubPathLen = 0;
     } else if (m_curSubPathLen == 1) {
         m_points.pop_back();
         m_elemTypes.pop_back();
-        m_curSubPathLen = 0;
     }
+    m_curSubPathLen = 0;
 }
 
 Path_ElementIterator Path::elementBegin() const

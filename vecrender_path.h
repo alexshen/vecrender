@@ -28,7 +28,7 @@ public:
     PathElement& operator =(const PathElement&) = default;
 
     PathElement::Enum getType() const;
-    std::size_t numPoints() const;
+    std::size_t getNumPoints() const;
     glm::vec2 getPoint(std::size_t index) const;
     const glm::vec2* getPoints() const;
 private:
@@ -77,10 +77,10 @@ public:
     Path();
 
     Path(const Path&) = default;
-    Path(Path&& rhs);
+    Path(Path&& rhs) noexcept;
 
     Path& operator =(const Path&) = default;
-    Path& operator =(Path&& rhs);
+    Path& operator =(Path&& rhs) noexcept;
 
     void moveTo(glm::vec2 p);
     void lineTo(glm::vec2 p);
@@ -109,14 +109,14 @@ inline PathElement::Enum PathElement::getType() const
     return m_elemType;
 }
 
-inline std::size_t PathElement::numPoints() const
+inline std::size_t PathElement::getNumPoints() const
 {
     return getPointNumForElementType(m_elemType);
 }
 
 inline glm::vec2 PathElement::getPoint(std::size_t index) const
 {
-    assert(index < numPoints());
+    assert(index < getNumPoints());
     return m_points[index];
 }
 

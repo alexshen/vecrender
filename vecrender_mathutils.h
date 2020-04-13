@@ -3,11 +3,11 @@
 
 #include <glm/glm.hpp>
 #include <algorithm>
-#include <limits>
-#include <utility>
-#include <type_traits>
 #include <cassert>
 #include <cmath>
+#include <limits>
+#include <type_traits>
+#include <utility>
 
 namespace vecrender {
 
@@ -116,7 +116,8 @@ std::pair<T, T> MathUtils::solveQuadratic(T a, T b, T c)
     static_assert(std::is_floating_point_v<T>, 
                   "T must be of floating point type");
 
-    T q = -(b + std::copysign(T(1.0), b) * std::sqrt(b * b - T(4.0) * a * c));
+    b *= T(0.5);
+    T q = -(b + std::copysign(T(1.0), b) * std::sqrt(b * b - a * c));
     return { q / a, c / q };
 }
 
