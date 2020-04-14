@@ -43,8 +43,8 @@ struct MathUtils {
 
     static float determinant(const glm::vec2& d0, const glm::vec2& d1);
 
-    // Return the two solutions to the quadratic equation
-    // If there's no solutions, NaNs are returned
+    // Return the two solutions to the quadratic equation.
+    // `a' must not be 0 and the equaiton must have real roots.
     template<typename T>
     static std::pair<T, T> solveQuadratic(T a, T b, T c);
 };
@@ -116,9 +116,16 @@ std::pair<T, T> MathUtils::solveQuadratic(T a, T b, T c)
     static_assert(std::is_floating_point_v<T>, 
                   "T must be of floating point type");
 
-    b *= T(0.5);
-    T q = -(b + std::copysign(T(1.0), b) * std::sqrt(b * b - a * c));
-    return { q / a, c / q };
+    assert(a != T(0));
+
+    if (b != T(0)) {
+        b *= T(0.5);
+        T q = -(b + std::copysign(T(1.0), b) * std::sqrt(std::abs(b * b - a * c)));
+        return { q / a, c / q };
+    } else {
+        T n = std::sqrt(std::abs(a * c));
+        return { -n / a, n / a };
+    }
 }
 
 } // namespace vecrender
