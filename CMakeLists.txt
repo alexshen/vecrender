@@ -6,6 +6,7 @@ add_library(vecrender
     vecrender_path.cpp
     vecrender_triangulator.cpp
     vecrender_localtriangulator.cpp
+    vecrender_domaintrianglemarker.cpp
 )
 
 set_property(TARGET vecrender PROPERTY CXX_STANDARD 20)

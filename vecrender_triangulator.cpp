@@ -1,5 +1,6 @@
 #include <vecrender_triangulator.h>
 #include <vecrender_mathutils.h>
+#include <vecrender_domaintrianglemarker.h>
 #include <glm/glm.hpp>
 #include <CGAL/Constrained_Delaunay_triangulation_2.h>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
@@ -8,10 +9,8 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
-#include <deque>
 #include <iterator>
 #include <map>
-#include <queue>
 #include <utility>
 
 namespace vecrender {
@@ -64,38 +63,15 @@ public:
         }
     }
 
-    // explore set of facets connected with non constrained edges,
-    // and attribute to each such set a nesting level.
-    // We start from facets incident to the infinite vertex, with a nesting
-    // level of 0. Then we recursively consider the non-explored facets
-    // incident to constrained edges bounding the former set and increase the
-    // nesting level by 1. Facets in the domain are those with an odd nesting
-    // level.
-    void markDomains()
-    {
-        for (CDT::Face_handle f : m_cdt.all_face_handles()) {
-            f->info().nesting_level = -1;
-        }
-        std::deque<CDT::Edge> border;
-        markDomains(m_cdt.infinite_face(), 0, border);
-        while (!border.empty()) {
-            CDT::Edge e = border.front();
-            border.pop_front();
-            CDT::Face_handle n = e.first->neighbor(e.second);
-            if (n->info().nesting_level == -1) {
-                markDomains(n, e.first->info().nesting_level + 1, border);
-            }
-        }
-    }
-
-    const CDT& getCDT() const { return m_cdt; }
+    CDT& getCDT() { return m_cdt; }
 
     bool isInnerTriangle(CDT::Face_handle f) const
     {
         const Triangulator_Segment* curSeg = nullptr;
         int numConstraintEdges = 0;
         for (int i = 0; i < 3; ++i) {
-            const ConstraintEdgeInfo* info = getConstraintEdgeInfo(f, i);
+            const ConstraintEdgeInfo* info
+                = getConstraintEdgeInfo(CDT::Edge(f, i));
             if (info) {
                 if (curSeg && curSeg != info->segment) {
                     break;
@@ -106,6 +82,15 @@ public:
             }
         }
         return numConstraintEdges < 3;
+    }
+
+    const ConstraintEdgeInfo* getConstraintEdgeInfo(CDT::Edge e) const
+    {
+        int v0 = m_cdt.ccw(e.second);
+        int v1 = m_cdt.cw(e.second);
+        auto it = m_constraintEdges.find(
+            makeEdge(e.first->vertex(v0), e.first->vertex(v1)));
+        return it != m_constraintEdges.end() ? &it->second : nullptr;
     }
 
 private:
@@ -128,47 +113,6 @@ private:
         info.border = std::abs(i - j) == 1;
     }
 
-    void markDomains(
-        CDT::Face_handle start, int index, std::deque<CDT::Edge>& border)
-    {
-        if (start->info().nesting_level != -1) {
-            return;
-        }
-
-        std::queue<CDT::Face_handle> q;
-        q.push(start);
-        while (!q.empty()) {
-            CDT::Face_handle fh = q.front();
-            q.pop();
-            if (fh->info().nesting_level != -1) {
-                continue;
-            }
-            fh->info().nesting_level = index;
-            for (int i = 0; i < 3; i++) {
-                CDT::Edge e(fh, i);
-                CDT::Face_handle n = fh->neighbor(i);
-                if (n->info().nesting_level != -1) {
-                    continue;
-                }
-                if (const ConstraintEdgeInfo* info
-                    = getConstraintEdgeInfo(fh, m_cdt.ccw(i));
-                    info && info->border) {
-                    border.push_back(e);
-                } else {
-                    q.push(n);
-                }
-            }
-        }
-    }
-
-    const ConstraintEdgeInfo* getConstraintEdgeInfo(
-        CDT::Face_handle f, int i) const
-    {
-        auto it = m_constraintEdges.find(
-            makeEdge(f->vertex(i), f->vertex(m_cdt.ccw(i))));
-        return it != m_constraintEdges.end() ? &it->second : nullptr;
-    }
-
     static Edge makeEdge(CDT::Vertex_handle vh0, CDT::Vertex_handle vh1)
     {
         int id0 = vh0->info().id;
@@ -179,6 +123,34 @@ private:
     CDT m_cdt;
     std::map<Edge, ConstraintEdgeInfo> m_constraintEdges;
     int m_nextVertexId = 0;
+};
+
+class DomainPolicy
+{
+public:
+    DomainPolicy(CDTImpl& impl)
+        : m_impl(impl)
+    {
+    }
+
+    void setFaceNestingLevel(CDT::Face_handle f, int level)
+    {
+        f->info().nestingLevel = level;
+    }
+
+    int getFaceNestingLevel(CDT::Face_handle f) const
+    {
+        return f->info().nestingLevel;
+    }
+
+    bool isBorderEdge(CDT::Edge e) const
+    {
+        const ConstraintEdgeInfo* info = m_impl.getConstraintEdgeInfo(e);
+        return info && info->border;
+    }
+
+private:
+    CDTImpl& m_impl;
 };
 
 struct CubicClassifier
@@ -514,7 +486,11 @@ void Triangulator::constrainedTriangulate()
         segment.triangulate();
         impl.addConstraints(segment);
     }
-    impl.markDomains();
+
+    DomainTriangleMarker<CDT> domainMarker;
+    DomainPolicy domainPolicy(impl);
+    domainMarker.markDomains(impl.getCDT(), domainPolicy);
+
     for (const auto& segment : m_segments) {
         for (int i = 0; i < segment.getNumTriangles(); ++i) {
             for (int j = 0; j < 3; ++j) {
