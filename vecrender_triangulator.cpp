@@ -21,8 +21,8 @@ constexpr float k_EPSILON = 1e-7f;
 
 struct FaceInfo
 {
-    int nesting_level;
-    bool inDomain() { return nesting_level % 2 == 1; }
+    int nestingLevel;
+    bool inDomain() { return nestingLevel % 2 == 1; }
 };
 
 struct VertexInfo
@@ -44,7 +44,7 @@ struct ConstraintEdgeInfo
     bool border;
 };
 
-class CDTImpl
+class CDTHelper
 {
     using Edge = std::pair<int, int>;
 
@@ -128,7 +128,7 @@ private:
 class DomainPolicy
 {
 public:
-    DomainPolicy(CDTImpl& impl)
+    DomainPolicy(CDTHelper& impl)
         : m_impl(impl)
     {
     }
@@ -150,7 +150,7 @@ public:
     }
 
 private:
-    CDTImpl& m_impl;
+    CDTHelper& m_impl;
 };
 
 struct CubicClassifier
@@ -481,15 +481,15 @@ std::size_t Triangulator::numVertices() const { return m_vertices.size(); }
 
 void Triangulator::constrainedTriangulate()
 {
-    CDTImpl impl;
+    CDTHelper helper;
     for (auto& segment : m_segments) {
         segment.triangulate();
-        impl.addConstraints(segment);
+        helper.addConstraints(segment);
     }
 
     DomainTriangleMarker<CDT> domainMarker;
-    DomainPolicy domainPolicy(impl);
-    domainMarker.markDomains(impl.getCDT(), domainPolicy);
+    DomainPolicy domainPolicy(helper);
+    domainMarker.markDomains(helper.getCDT(), domainPolicy);
 
     for (const auto& segment : m_segments) {
         for (int i = 0; i < segment.getNumTriangles(); ++i) {
@@ -501,11 +501,11 @@ void Triangulator::constrainedTriangulate()
             }
         }
     }
-    for (auto fh : impl.getCDT().finite_face_handles()) {
+    for (auto fh : helper.getCDT().finite_face_handles()) {
         if (!fh->info().inDomain()) {
             continue;
         }
-        if (!impl.isInnerTriangle(fh)) {
+        if (!helper.isInnerTriangle(fh)) {
             continue;
         }
         for (int i = 0; i < 3; ++i) {
