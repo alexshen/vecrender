@@ -334,6 +334,10 @@ bool Triangulator_Segment::computeCubicBezierFactors(
     float d1 = MathUtils::determinant(c3, c2);
     float d2 = -MathUtils::determinant(c3, c1);
     float d3 = MathUtils::determinant(c2, c1);
+    auto d = glm::normalize(glm::vec3(d1, d2, d3));
+    d1 = d.x;
+    d2 = d.y;
+    d3 = d.z;
 
     constexpr glm::mat4 k_INVERSE_M(glm::vec4(1, 0, 0, 0),
         glm::vec4(1, 1.0f / 3.0f, 0, 0),
@@ -396,14 +400,16 @@ bool Triangulator_Segment::computeCubicBezierFactors(
         break;
     }
 
-    case CubicClassifier::e_CUSP_CUSP_AT_INF:
+    case CubicClassifier::e_CUSP_CUSP_AT_INF: {
+        glm::vec2 l = glm::normalize(glm::vec2(d3, 3.0f * d2));
         // cusp with cusp at infinity
-        F[0] = { d3, d3 * d3 * d3, 1 };
-        F[1] = { -3.0f * d2, -9.0f * d2 * d3 * d3, 0 };
-        F[2] = { 0, 27.0f * d2 * d2 * d3, 0 };
-        F[3] = { 0, -27.0f * d2 * d2 * d2, 0 };
+        F[0] = { l.x, l.x * l.x * l.x, 1 };
+        F[1] = { -l.y, -3.0f * l.y * l.x * l.x, 0 };
+        F[2] = { 0, 3.0f * l.y * l.y * l.x, 0 };
+        F[3] = { 0, -l.y * l.y * l.y, 0 };
         setFactors(&(F * k_INVERSE_M)[0]);
         break;
+    }
 
     case CubicClassifier::e_QUADRATIC:
         // quadratic
