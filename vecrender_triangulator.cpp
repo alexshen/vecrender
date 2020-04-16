@@ -65,23 +65,18 @@ public:
 
     CDT& getCDT() { return m_cdt; }
 
-    bool isInnerTriangle(CDT::Face_handle f) const
+    bool isConstraintTriangle(CDT::Face_handle fh) const
     {
-        const Triangulator_Segment* curSeg = nullptr;
-        int numConstraintEdges = 0;
+        const Triangulator_Segment* prev = nullptr;
         for (int i = 0; i < 3; ++i) {
             const ConstraintEdgeInfo* info
-                = getConstraintEdgeInfo(CDT::Edge(f, i));
-            if (info) {
-                if (curSeg && curSeg != info->segment) {
-                    break;
-                } else if (!curSeg) {
-                    curSeg = info->segment;
-                }
-                ++numConstraintEdges;
+                = getConstraintEdgeInfo(CDT::Edge(fh, i));
+            if (!info || (prev && prev != info->segment)) {
+                return false;
             }
+            prev = info->segment;
         }
-        return numConstraintEdges < 3;
+        return true;
     }
 
     const ConstraintEdgeInfo* getConstraintEdgeInfo(CDT::Edge e) const
@@ -474,7 +469,6 @@ Triangulator::Triangulator(const Path& path)
         }
     }
     // XXX: detect overlapping
-    // XXX: subdivision for antialising
     constrainedTriangulate();
 }
 
@@ -483,7 +477,7 @@ const TriangulatorVertex* Triangulator::getVertices() const
     return m_vertices.data();
 }
 
-std::size_t Triangulator::numVertices() const { return m_vertices.size(); }
+std::size_t Triangulator::getNumVertices() const { return m_vertices.size(); }
 
 void Triangulator::constrainedTriangulate()
 {
@@ -500,10 +494,9 @@ void Triangulator::constrainedTriangulate()
     for (const auto& segment : m_segments) {
         for (int i = 0; i < segment.getNumTriangles(); ++i) {
             for (int j = 0; j < 3; ++j) {
-                TriangulatorVertex& tv = m_vertices.emplace_back();
                 auto pointIndex = segment.getTriangle(i).getIndex(j);
-                tv.position = segment.getPoint(pointIndex);
-                tv.factors = segment.getFactor(pointIndex);
+                addVertex(segment.getPoint(pointIndex),
+                    segment.getFactor(pointIndex));
             }
         }
     }
@@ -511,16 +504,21 @@ void Triangulator::constrainedTriangulate()
         if (!fh->info().inDomain()) {
             continue;
         }
-        if (!helper.isInnerTriangle(fh)) {
+        if (helper.isConstraintTriangle(fh)) {
             continue;
         }
         for (int i = 0; i < 3; ++i) {
             CDT::Vertex_handle vh = fh->vertex(i);
-            TriangulatorVertex& tv = m_vertices.emplace_back();
-            tv.position = { vh->point().x(), vh->point().y() };
-            tv.factors = { -1, 0, 0 };
+            addVertex({ vh->point().x(), vh->point().y() }, { -1, 0, 0 });
         }
     }
+}
+
+void Triangulator::addVertex(const glm::vec2& pos, const glm::vec3& factors)
+{
+    TriangulatorVertex& tv = m_vertices.emplace_back();
+    tv.position = pos;
+    tv.factors = factors;
 }
 
 } // namespace vecrender

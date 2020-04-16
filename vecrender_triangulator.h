@@ -62,9 +62,10 @@ public:
     Triangulator(const Path& path);
 
     const TriangulatorVertex* getVertices() const;
-    std::size_t numVertices() const;
+    std::size_t getNumVertices() const;
 private:
     void constrainedTriangulate();
+    void addVertex(const glm::vec2& pos, const glm::vec3& factors);
 
     std::vector<TriangulatorVertex> m_vertices;
     std::vector<Triangulator_Segment> m_segments;
