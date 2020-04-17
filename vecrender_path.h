@@ -1,3 +1,4 @@
+// clang-format off
 #ifndef INCLUDED_VECRENDER_PATH
 #define INCLUDED_VECRENDER_PATH
 
@@ -6,31 +7,35 @@
 #include <cstddef>
 #include <iterator>
 #include <vector>
+// clang-format on
 
 namespace vecrender {
 
 class Path;
 class Path_ElementIterator;
 
-class PathElement {
+class PathElement
+{
 public:
-    enum Enum : char {
+    enum Enum : char
+    {
         e_LINE,
         e_QUADRATIC,
         e_CUBIC,
-        e_MOVE, // for internal use
+        e_MOVE,
         e_INVALID
     };
 
     static std::size_t getPointNumForElementType(PathElement::Enum elemType);
 
     PathElement(const PathElement&) = default;
-    PathElement& operator =(const PathElement&) = default;
+    PathElement& operator=(const PathElement&) = default;
 
     PathElement::Enum getType() const;
     std::size_t getNumPoints() const;
     glm::vec2 getPoint(std::size_t index) const;
     const glm::vec2* getPoints() const;
+
 private:
     friend class Path_ElementIterator;
     PathElement();
@@ -39,7 +44,8 @@ private:
     PathElement::Enum m_elemType;
 };
 
-class Path_ElementIterator {
+class Path_ElementIterator
+{
 public:
     using value_type = PathElement;
     using reference = const value_type&;
@@ -48,39 +54,42 @@ public:
     using iterator_category = std::input_iterator_tag;
 
     Path_ElementIterator(const Path_ElementIterator&) = default;
-    Path_ElementIterator& operator =(const Path_ElementIterator&) = default;
-    
-    reference operator *() const;
-    pointer operator ->() const;
-    Path_ElementIterator& operator ++();
-    Path_ElementIterator operator ++(int);
+    Path_ElementIterator& operator=(const Path_ElementIterator&) = default;
+
+    reference operator*() const;
+    pointer operator->() const;
+    Path_ElementIterator& operator++();
+    Path_ElementIterator operator++(int);
 
     bool equal(const Path_ElementIterator& rhs) const;
+
 private:
     friend class Path;
-    Path_ElementIterator(const Path& path, bool end);
+    Path_ElementIterator(const Path& path, bool end, bool raw);
 
     const Path* m_path;
     std::vector<PathElement::Enum>::const_iterator m_itElem;
 
     PathElement m_curElem;
+    bool m_raw;
 };
 
-bool operator ==(const Path_ElementIterator& lhs, 
-                 const Path_ElementIterator& rhs);
+bool operator==(
+    const Path_ElementIterator& lhs, const Path_ElementIterator& rhs);
 
-bool operator !=(const Path_ElementIterator& lhs, 
-                 const Path_ElementIterator& rhs);
+bool operator!=(
+    const Path_ElementIterator& lhs, const Path_ElementIterator& rhs);
 
-class Path {
+class Path
+{
 public:
     Path();
 
     Path(const Path&) = default;
     Path(Path&& rhs) noexcept;
 
-    Path& operator =(const Path&) = default;
-    Path& operator =(Path&& rhs) noexcept;
+    Path& operator=(const Path&) = default;
+    Path& operator=(Path&& rhs) noexcept;
 
     void moveTo(glm::vec2 p);
     void lineTo(glm::vec2 p);
@@ -88,8 +97,14 @@ public:
     void cubicTo(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3);
     void close();
 
+    // elements without e_MOVE
     Path_ElementIterator elementBegin() const;
     Path_ElementIterator elementEnd() const;
+
+    // raw elements including e_MOVE
+    Path_ElementIterator rawElementBegin() const;
+    Path_ElementIterator rawElementEnd() const;
+
 private:
     friend class Path_ElementIterator;
 
@@ -97,17 +112,14 @@ private:
     std::vector<PathElement::Enum> m_elemTypes;
     int m_curSubPathLen;
 };
-    
+
 // ============================================================================
 // INLINE FUNCTION DEFINITIONS
 // ============================================================================
 
 // PathElement
 
-inline PathElement::Enum PathElement::getType() const
-{
-    return m_elemType;
-}
+inline PathElement::Enum PathElement::getType() const { return m_elemType; }
 
 inline std::size_t PathElement::getNumPoints() const
 {
@@ -120,26 +132,23 @@ inline glm::vec2 PathElement::getPoint(std::size_t index) const
     return m_points[index];
 }
 
-inline const glm::vec2* PathElement::getPoints() const
-{
-    return m_points;
-}
+inline const glm::vec2* PathElement::getPoints() const { return m_points; }
 
 // Path_ElementIterator
 
-inline Path_ElementIterator::reference Path_ElementIterator::operator *() const
+inline Path_ElementIterator::reference Path_ElementIterator::operator*() const
 {
     assert(m_curElem.getType() != PathElement::e_INVALID);
     return m_curElem;
 }
 
-inline Path_ElementIterator::pointer Path_ElementIterator::operator ->() const
+inline Path_ElementIterator::pointer Path_ElementIterator::operator->() const
 {
     assert(m_curElem.getType() != PathElement::e_INVALID);
     return &m_curElem;
 }
 
-inline Path_ElementIterator Path_ElementIterator::operator ++(int)
+inline Path_ElementIterator Path_ElementIterator::operator++(int)
 {
     Path_ElementIterator tmp(*this);
     ++*this;
@@ -148,21 +157,21 @@ inline Path_ElementIterator Path_ElementIterator::operator ++(int)
 
 inline bool Path_ElementIterator::equal(const Path_ElementIterator& rhs) const
 {
-    return m_itElem == rhs.m_itElem;
+    return m_itElem == rhs.m_itElem && m_raw == rhs.m_raw;
 }
 
-} /* vecrender  */ 
+} // namespace vecrender
 
 // FREE OPERATORS
 
-inline bool vecrender::operator ==(const Path_ElementIterator& lhs, 
-                                   const Path_ElementIterator& rhs)
+inline bool vecrender::operator==(
+    const Path_ElementIterator& lhs, const Path_ElementIterator& rhs)
 {
     return lhs.equal(rhs);
 }
 
-inline bool vecrender::operator !=(const Path_ElementIterator& lhs, 
-                                   const Path_ElementIterator& rhs)
+inline bool vecrender::operator!=(
+    const Path_ElementIterator& lhs, const Path_ElementIterator& rhs)
 {
     return !(lhs == rhs);
 }

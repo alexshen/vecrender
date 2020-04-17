@@ -30,26 +30,36 @@ PathElement::PathElement()
 
 // Path_ElementIterator
 
-Path_ElementIterator::Path_ElementIterator(const Path& path, bool end)
+Path_ElementIterator::Path_ElementIterator(
+    const Path& path, bool end, bool raw)
     : m_path(&path)
+    , m_raw(raw)
 {
-    if (!end && path.m_elemTypes.size() > 1) {
+    if (!end) {
         m_curElem.m_points = path.m_points.data();
-        m_curElem.m_elemType = path.m_elemTypes[1]; // skip the e_MOVE
-        m_itElem = path.m_elemTypes.begin() + 1;
+        m_itElem = path.m_elemTypes.begin();
+        if (!raw && path.m_elemTypes.size() > 1) {
+            assert(*m_itElem == PathElement::e_MOVE);
+            ++m_itElem; // skip the e_MOVE
+        }
+        if (m_itElem != path.m_elemTypes.end()) {
+            m_curElem.m_elemType = *m_itElem;
+        }
     } else {
         m_itElem = path.m_elemTypes.end();
     }
 }
 
-Path_ElementIterator& Path_ElementIterator::operator ++()
+Path_ElementIterator& Path_ElementIterator::operator++()
 {
     assert(m_curElem.getType() != PathElement::e_INVALID);
     m_curElem.m_points += m_curElem.getNumPoints() - 1;
     ++m_itElem;
-    if (m_itElem != m_path->m_elemTypes.end() && 
-        *m_itElem == PathElement::e_MOVE) {
-        ++m_itElem;
+    if (m_itElem != m_path->m_elemTypes.end()
+        && *m_itElem == PathElement::e_MOVE) {
+        if (!m_raw) {
+            ++m_itElem; // skip e_MOVE
+        }
         ++m_curElem.m_points;
     }
     if (m_itElem != m_path->m_elemTypes.end()) {
@@ -76,7 +86,7 @@ Path::Path(Path&& rhs) noexcept
 {
 }
 
-Path& Path::operator =(Path&& rhs) noexcept
+Path& Path::operator=(Path&& rhs) noexcept
 {
     if (this != &rhs) {
         m_points = std::move(rhs.m_points);
@@ -89,10 +99,9 @@ Path& Path::operator =(Path&& rhs) noexcept
 void Path::moveTo(glm::vec2 p)
 {
     if (m_curSubPathLen != 1) {
-        close();
         m_points.push_back(p);
         m_elemTypes.push_back(PathElement::e_MOVE);
-        ++m_curSubPathLen;
+        m_curSubPathLen = 1;
     } else {
         m_points.back() = p;
     }
@@ -141,12 +150,21 @@ void Path::close()
 
 Path_ElementIterator Path::elementBegin() const
 {
-    return Path_ElementIterator(*this, false);
+    return Path_ElementIterator(*this, false, false);
 }
 
 Path_ElementIterator Path::elementEnd() const
 {
-    return Path_ElementIterator(*this, true);
+    return Path_ElementIterator(*this, true, false);
 }
 
+Path_ElementIterator Path::rawElementBegin() const
+{
+    return Path_ElementIterator(*this, false, true);
+}
+
+Path_ElementIterator Path::rawElementEnd() const
+{
+    return Path_ElementIterator(*this, true, true);
+}
 } // namespace vecrender
