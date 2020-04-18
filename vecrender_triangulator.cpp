@@ -51,8 +51,10 @@ class CDTHelper
 public:
     void addConstraints(const Triangulator_Segment& segment)
     {
-        if (segment.getType() == PathElement::e_LINE) {
-            addConstraint(segment, 0, 1);
+        if (segment.getNumTriangles() == 0) {
+            for (int i = 0; i < segment.getNumPoints() - 1; ++i) {
+                addConstraint(segment, i, i + 1);
+            }
         } else {
             for (std::size_t i = 0; i < segment.getNumTriangles(); ++i) {
                 for (std::size_t j = 0; j < 3; ++j) {
@@ -88,6 +90,16 @@ public:
         return it != m_constraintEdges.end() ? &it->second : nullptr;
     }
 
+#ifdef DEBUG_TRIANGULATION
+    void debugDump()
+    {
+        std::printf("%d borders\n",
+            (int)std::count_if(m_constraintEdges.begin(),
+                m_constraintEdges.end(),
+                [](const auto& p) { return p.second.border; }));
+    }
+#endif
+
 private:
     void addConstraint(const Triangulator_Segment& segment, int i, int j)
     {
@@ -103,9 +115,10 @@ private:
         }
         m_cdt.insert_constraint(vh0, vh1);
 
-        ConstraintEdgeInfo& info = m_constraintEdges[makeEdge(vh0, vh1)];
-        info.segment = &segment;
-        info.border = std::abs(i - j) == 1;
+        ConstraintEdgeInfo edgeInfo;
+        edgeInfo.segment = &segment;
+        edgeInfo.border = std::abs(i - j) == 1;
+        m_constraintEdges.emplace(makeEdge(vh0, vh1), edgeInfo);
     }
 
     static Edge makeEdge(CDT::Vertex_handle vh0, CDT::Vertex_handle vh1)
@@ -497,11 +510,21 @@ void Triangulator::constrainedTriangulate()
                 auto pointIndex = segment.getTriangle(i).getIndex(j);
                 addVertex(segment.getPoint(pointIndex),
                     segment.getFactor(pointIndex));
+#ifdef DEBUG_TRIANGULATION
+                m_vertices.back().type = TriangulatorVertex::e_CONSTRAINT;
+#endif
             }
         }
     }
     for (auto fh : helper.getCDT().finite_face_handles()) {
         if (!fh->info().inDomain()) {
+#ifdef DEBUG_TRIANGULATION
+            for (int i = 0; i < 3; ++i) {
+                CDT::Vertex_handle vh = fh->vertex(i);
+                addVertex({ vh->point().x(), vh->point().y() }, { -1, 0, 0 });
+                m_vertices.back().type = TriangulatorVertex::e_NON_DOMAIN;
+            }
+#endif
             continue;
         }
         if (helper.isConstraintTriangle(fh)) {
@@ -510,6 +533,9 @@ void Triangulator::constrainedTriangulate()
         for (int i = 0; i < 3; ++i) {
             CDT::Vertex_handle vh = fh->vertex(i);
             addVertex({ vh->point().x(), vh->point().y() }, { -1, 0, 0 });
+#ifdef DEBUG_TRIANGULATION
+            m_vertices.back().type = TriangulatorVertex::e_INNER;
+#endif
         }
     }
 }

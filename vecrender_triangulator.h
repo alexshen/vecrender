@@ -1,5 +1,5 @@
 #ifndef INCLUDED_VECRENDER_TRIANGULATOR
-#define INCLUDED_VECRENDER_TRIANGULATOR 
+#define INCLUDED_VECRENDER_TRIANGULATOR
 
 #include <vecrender_path.h>
 #include <vecrender_localtriangulator.h>
@@ -13,15 +13,17 @@ namespace vecrender {
 
 class Triangulator;
 
-class Triangulator_Segment {
+class Triangulator_Segment
+{
     friend class Triangulator;
     Triangulator_Segment() = default;
+
 public:
     // must be public to be used with std::vector
     Triangulator_Segment(const glm::vec2* points, PathElement::Enum type);
 
     PathElement::Enum getType() const;
-    
+
     const glm::vec2* getPoints() const;
     const glm::vec2& getPoint(std::size_t index) const;
     void setPoints(const glm::vec2* points);
@@ -35,13 +37,14 @@ public:
     void split(float t, Triangulator_Segment& newSegment);
 
     // Compute the linear factors for the curve
-    // Return true if a new segment is created to resolove 
+    // Return true if a new segment is created to resolove
     // the loop curve artifact
     bool computeFactors(Triangulator_Segment& newSegment);
 
     void triangulate();
     std::size_t getNumTriangles() const;
     const LocalTriangulatorTriangle& getTriangle(std::size_t index) const;
+
 private:
     bool computeCubicBezierFactors(Triangulator_Segment& newSegment);
     void reverseOrientation();
@@ -52,17 +55,29 @@ private:
     LocalTriangulator m_triangulator;
 };
 
-struct TriangulatorVertex {
+struct TriangulatorVertex
+{
     glm::vec2 position;
     glm::vec3 factors;
+#ifdef DEBUG_TRIANGULATION
+    enum Enum
+    {
+        e_NON_DOMAIN,
+        e_CONSTRAINT,
+        e_INNER
+    };
+    TriangulatorVertex::Enum type;
+#endif
 };
 
-class Triangulator {
+class Triangulator
+{
 public:
     Triangulator(const Path& path);
 
     const TriangulatorVertex* getVertices() const;
     std::size_t getNumVertices() const;
+
 private:
     void constrainedTriangulate();
     void addVertex(const glm::vec2& pos, const glm::vec3& factors);
@@ -71,6 +86,6 @@ private:
     std::vector<Triangulator_Segment> m_segments;
 };
 
-} /* vecrender  */ 
+} // namespace vecrender
 
 #endif /* ifndef INCLUDED_VECRENDER_TRIANGULATOR */
