@@ -59,7 +59,7 @@ struct TriangulatorVertex
 {
     glm::vec2 position;
     glm::vec3 factors;
-#ifdef DEBUG_TRIANGULATION
+#ifdef VECRENDER_TRIANGULATION_DEBUG
     enum Enum
     {
         e_NON_DOMAIN,

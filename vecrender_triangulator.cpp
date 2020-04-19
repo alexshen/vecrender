@@ -90,7 +90,7 @@ public:
         return it != m_constraintEdges.end() ? &it->second : nullptr;
     }
 
-#ifdef DEBUG_TRIANGULATION
+#ifdef VECRENDER_TRIANGULATION_DEBUG
     void debugDump()
     {
         std::printf("%d borders\n",
@@ -510,7 +510,7 @@ void Triangulator::constrainedTriangulate()
                 auto pointIndex = segment.getTriangle(i).getIndex(j);
                 addVertex(segment.getPoint(pointIndex),
                     segment.getFactor(pointIndex));
-#ifdef DEBUG_TRIANGULATION
+#ifdef VECRENDER_TRIANGULATION_DEBUG
                 m_vertices.back().type = TriangulatorVertex::e_CONSTRAINT;
 #endif
             }
@@ -518,7 +518,7 @@ void Triangulator::constrainedTriangulate()
     }
     for (auto fh : helper.getCDT().finite_face_handles()) {
         if (!fh->info().inDomain()) {
-#ifdef DEBUG_TRIANGULATION
+#ifdef VECRENDER_TRIANGULATION_DEBUG
             for (int i = 0; i < 3; ++i) {
                 CDT::Vertex_handle vh = fh->vertex(i);
                 addVertex({ vh->point().x(), vh->point().y() }, { -1, 0, 0 });
@@ -533,7 +533,7 @@ void Triangulator::constrainedTriangulate()
         for (int i = 0; i < 3; ++i) {
             CDT::Vertex_handle vh = fh->vertex(i);
             addVertex({ vh->point().x(), vh->point().y() }, { -1, 0, 0 });
-#ifdef DEBUG_TRIANGULATION
+#ifdef VECRENDER_TRIANGULATION_DEBUG
             m_vertices.back().type = TriangulatorVertex::e_INNER;
 #endif
         }

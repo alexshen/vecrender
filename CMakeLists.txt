@@ -9,9 +9,9 @@ add_library(vecrender
     vecrender_domaintrianglemarker.cpp
 )
 
-option(DEBUG_TRIANGULATION "Debug triangulation" OFF)
-if (${DEBUG_TRIANGULATION})
-    target_compile_definitions(vecrender PUBLIC DEBUG_TRIANGULATION)
+option(VECRENDER_TRIANGULATION_DEBUG "Debug triangulation" OFF)
+if (${VECRENDER_TRIANGULATION_DEBUG})
+    target_compile_definitions(vecrender PUBLIC VECRENDER_TRIANGULATION_DEBUG)
 endif()
 
 set_property(TARGET vecrender PROPERTY CXX_STANDARD 20)
