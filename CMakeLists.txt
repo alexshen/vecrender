@@ -14,6 +14,14 @@ if (${VECRENDER_TRIANGULATION_DEBUG})
     target_compile_definitions(vecrender PUBLIC VECRENDER_TRIANGULATION_DEBUG)
 endif()
 
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL GNU OR
+        ${CMAKE_CXX_COMPILER_ID} STREQUAL AppleClang OR
+        ${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
+    target_compile_options(vecrender PRIVATE -Wall -Wpedantic)
+elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+    target_compile_options(vecrender PRIVATE /W3)
+endif()
+
 set_property(TARGET vecrender PROPERTY CXX_STANDARD 20)
 target_include_directories(vecrender PRIVATE .)
 
