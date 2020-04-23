@@ -10,15 +10,15 @@ add_library(vecrender
 )
 
 option(VECRENDER_TRIANGULATION_DEBUG "Debug triangulation" OFF)
-if (${VECRENDER_TRIANGULATION_DEBUG})
+if (VECRENDER_TRIANGULATION_DEBUG)
     target_compile_definitions(vecrender PUBLIC VECRENDER_TRIANGULATION_DEBUG)
 endif()
 
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL GNU OR
-        ${CMAKE_CXX_COMPILER_ID} STREQUAL AppleClang OR
-        ${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
+if (CMAKE_CXX_COMPILER_ID STREQUAL GNU OR
+        CMAKE_CXX_COMPILER_ID STREQUAL AppleClang OR
+        CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     target_compile_options(vecrender PRIVATE -Wall -Wpedantic)
-elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL MSVC)
     target_compile_options(vecrender PRIVATE /W3)
 endif()
 
